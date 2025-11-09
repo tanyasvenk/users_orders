@@ -1,9 +1,8 @@
-from fastapi import FastAPI, Request, HTTPException, Depends
+from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 import httpx
 import jwt
-from functools import lru_cache
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 import uuid
@@ -11,7 +10,6 @@ import os
 
 app = FastAPI(title="API Gateway")
 
-# CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -20,7 +18,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Rate limiting
 limiter = Limiter(key_func=get_remote_address)
 
 # Service URLs
@@ -28,7 +25,7 @@ USERS_URL = os.getenv("USERS_URL", "http://service_users:8000")
 ORDERS_URL = os.getenv("ORDERS_URL", "http://service_orders:8000")
 SECRET_KEY = os.getenv("SECRET_KEY", "secret")
 
-# Middleware for X-Request-ID
+
 @app.middleware("http")
 async def add_request_id(request: Request, call_next):
     request_id = request.headers.get("X-Request-ID", str(uuid.uuid4()))
@@ -36,7 +33,7 @@ async def add_request_id(request: Request, call_next):
     response.headers["X-Request-ID"] = request_id
     return response
 
-# Auth check
+
 def verify_token(request: Request):
     auth = request.headers.get("Authorization")
     if not auth or not auth.startswith("Bearer "):
@@ -47,39 +44,59 @@ def verify_token(request: Request):
     except Exception:
         raise HTTPException(status_code=401, detail="Invalid token")
 
-# Proxy routes
-@app.get("/v1/users/{path:path}")
-@app.post("/v1/users/{path:path}")
-@app.put("/v1/users/{path:path}")
-@app.delete("/v1/users/{path:path}")
-@limiter.limit("10/minute")
-async def proxy_users(request: Request, path: str):
-    url = f"{USERS_URL}/v1/users/{path}"
-    async with httpx.AsyncClient() as client:
-        response = await client.request(
-            method=request.method,
-            url=url,
-            headers=request.headers,
-            json=await request.json() if request.method in ["POST", "PUT"] else None,
-        )
-    return JSONResponse(status_code=response.status_code, content=response.json())
 
-@app.get("/v1/orders/{path:path}")
-@app.post("/v1/orders/{path:path}")
-@app.put("/v1/orders/{path:path}")
-@app.delete("/v1/orders/{path:path}")
+def clean_headers(headers):
+    h = dict(headers)
+    h.pop("host", None)
+    h.pop("content-length", None)
+    return h
+
+
+async def safe_request(method: str, url: str, headers=None, data=None):
+    headers = headers or {}
+    timeout = httpx.Timeout(5.0, connect=2.0)
+    async with httpx.AsyncClient(timeout=timeout, follow_redirects=True) as client:
+        try:
+            response = await client.request(method, url, headers=headers, json=data)
+            try:
+                content = response.json()
+            except Exception:
+                content = {"raw": response.text}
+            return response.status_code, content
+        except httpx.RequestError as e:
+            return 502, {"detail": f"Service unreachable: {str(e)}"}
+
+
+@app.api_route("/v1/users/{path:path}", methods=["GET", "POST", "PUT", "DELETE"])
 @limiter.limit("10/minute")
-async def proxy_orders(request: Request, path: str):
+async def proxy_users(request: Request, path: str = ""):
+    url = f"{USERS_URL}/v1/users" + (f"/{path}" if path else "")
+    print(f"[Users Proxy] URL: {url}, Method: {request.method}")
+    data = None
+    if request.method in ["POST", "PUT"]:
+        try:
+            data = await request.json()
+        except Exception:
+            data = None
+    status, content = await safe_request(request.method, url, headers=clean_headers(request.headers), data=data)
+    return JSONResponse(status_code=status, content=content)
+
+
+@app.api_route("/v1/orders/{path:path}", methods=["GET", "POST", "PUT", "DELETE"])
+@limiter.limit("10/minute")
+async def proxy_orders(request: Request, path: str = ""):
     verify_token(request)
-    url = f"{ORDERS_URL}/v1/orders/{path}"
-    async with httpx.AsyncClient() as client:
-        response = await client.request(
-            method=request.method,
-            url=url,
-            headers=request.headers,
-            json=await request.json() if request.method in ["POST", "PUT"] else None,
-        )
-    return JSONResponse(status_code=response.status_code, content=response.json())
+    url = f"{ORDERS_URL}/v1/orders" + (f"/{path}" if path else "")
+    print(f"[Orders Proxy] URL: {url}, Method: {request.method}")
+    data = None
+    if request.method in ["POST", "PUT"]:
+        try:
+            data = await request.json()
+        except Exception:
+            data = None
+    status, content = await safe_request(request.method, url, headers=clean_headers(request.headers), data=data)
+    return JSONResponse(status_code=status, content=content)
+
 
 @app.get("/health")
 async def health():
