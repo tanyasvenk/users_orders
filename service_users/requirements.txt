@@ -4,3 +4,6 @@ python-jose[cryptography]
 passlib[bcrypt]
 pydantic
 python-dotenv
+PyJWT
+pydantic[email]
+email-validator
