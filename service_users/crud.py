@@ -1,11 +1,12 @@
 from __future__ import annotations
 from typing import Dict
-from .schemas import UserCreate
+from schemas import UserCreate
 import uuid
 import hashlib
 from datetime import datetime
 
 _db: Dict[str, dict] = {}
+
 
 def create_user(user: UserCreate) -> dict:
     if any(u['email'] == user.email for u in _db.values()):
@@ -23,6 +24,7 @@ def create_user(user: UserCreate) -> dict:
     _db[uid] = user_data
     return {"id": uid}
 
+
 def verify_credentials(email: str, password: str) -> str | None:
     password_hash = hashlib.sha256(password.encode()).hexdigest()
     for u in _db.values():
@@ -30,8 +32,10 @@ def verify_credentials(email: str, password: str) -> str | None:
             return u['id']
     return None
 
+
 def get_user(user_id: str) -> dict | None:
     return _db.get(user_id)
+
 
 def list_users() -> list[dict]:
     return list(_db.values())
