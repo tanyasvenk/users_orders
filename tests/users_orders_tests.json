@@ -1,0 +1,233 @@
+{
+  "info": {
+    "name": "Users_Orders_API_Tests",
+    "description": "Postman collection для тестирования Users и Orders сервисов напрямую и через API Gateway",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Register User - Success",
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type","value":"application/json"}],
+        "body": {"mode":"raw","raw":"{\"email\": \"test1@example.com\", \"password\": \"Password123\", \"name\": \"Test User\"}"},
+        "url": {"raw":"{{USERS_URL}}/v1/users/register","host":["{{USERS_URL}}"],"path":["v1","users","register"]}
+      },
+      "event":[{"listen":"test","script":{"exec":["pm.test('Status code is 200', function () { pm.response.to.have.status(200); });"]}}]
+    },
+    {
+      "name": "Register User - Success (Via Gateway)",
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type","value":"application/json"}],
+        "body": {"mode":"raw","raw":"{\"email\": \"test2@example.com\", \"password\": \"Password123\", \"name\": \"Test User\"}"},
+        "url": {"raw":"{{GATEWAY_URL}}/v1/users/register","host":["{{GATEWAY_URL}}"],"path":["v1","users","register"]}
+      },
+      "event":[{"listen":"test","script":{"exec":["pm.test('Status code is 200 via gateway', function () { pm.response.to.have.status(200); });"]}}]
+    },
+    {
+      "name": "Register User - Duplicate Email",
+      "request": {
+        "method": "POST",
+        "header": [{"key":"Content-Type","value":"application/json"}],
+        "body":{"mode":"raw","raw":"{\"email\": \"test1@example.com\", \"password\": \"Password123\", \"name\": \"Test User\"}"},
+        "url":{"raw":"{{USERS_URL}}/v1/users/register","host":["{{USERS_URL}}"],"path":["v1","users","register"]}
+      },
+      "event":[{"listen":"test","script":{"exec":["pm.test('Status code is 400', function () { pm.response.to.have.status(400); });"]}}]
+    },
+    {
+      "name": "Register User - Duplicate Email (Via Gateway)",
+      "request": {
+        "method": "POST",
+        "header": [{"key":"Content-Type","value":"application/json"}],
+        "body":{"mode":"raw","raw":"{\"email\": \"test1@example.com\", \"password\": \"Password123\", \"name\": \"Test User\"}"},
+        "url":{"raw":"{{GATEWAY_URL}}/v1/users/register","host":["{{GATEWAY_URL}}"],"path":["v1","users","register"]}
+      },
+      "event":[{"listen":"test","script":{"exec":["pm.test('Status code is 400 via gateway', function () { pm.response.to.have.status(400); });"]}}]
+    },
+    {
+      "name": "Login User",
+      "request": {
+        "method":"POST",
+        "header":[{"key":"Content-Type","value":"application/json"}],
+        "body":{"mode":"raw","raw":"{\"email\": \"test1@example.com\", \"password\": \"Password123\"}"},
+        "url":{"raw":"{{USERS_URL}}/v1/users/login","host":["{{USERS_URL}}"],"path":["v1","users","login"]}
+      },
+      "event":[{"listen":"test","script":{"exec":[
+        "pm.test('Login success', function () {",
+        "    var jsonData = pm.response.json();",
+        "    pm.expect(jsonData.success).to.eql(true);",
+        "    pm.environment.set('TOKEN', jsonData.data.token);",
+        "    pm.environment.set('USER_ID', jsonData.data.user.id);",
+        "});"
+      ]}}]
+    },
+    {
+      "name": "Login User (Via Gateway)",
+      "request": {
+        "method":"POST",
+        "header":[{"key":"Content-Type","value":"application/json"}],
+        "body":{"mode":"raw","raw":"{\"email\": \"test1@example.com\", \"password\": \"Password123\"}"},
+        "url":{"raw":"{{GATEWAY_URL}}/v1/users/login","host":["{{GATEWAY_URL}}"],"path":["v1","users","login"]}
+      },
+      "event":[{"listen":"test","script":{"exec":[
+        "pm.test('Login success via gateway', function () {",
+        "    var jsonData = pm.response.json();",
+        "    pm.expect(jsonData.success).to.eql(true);",
+        "    pm.environment.set('TOKEN', jsonData.data.token);",
+        "    pm.environment.set('USER_ID', jsonData.data.user.id);",
+        "});"
+      ]}}]
+    },
+    {
+      "name": "Get Profile - Success",
+      "request": {
+        "method":"GET",
+        "header":[{"key":"Authorization","value":"Bearer {{TOKEN}}"}],
+        "url":{"raw":"{{USERS_URL}}/v1/users/me","host":["{{USERS_URL}}"],"path":["v1","users","me"]}
+      },
+      "event":[{"listen":"test","script":{"exec":["pm.test('Profile fetched', function () { pm.response.to.have.status(200); });"]}}]
+    },
+    {
+      "name": "Get Profile - Success (Via Gateway)",
+      "request": {
+        "method":"GET",
+        "header":[{"key":"Authorization","value":"Bearer {{TOKEN}}"}],
+        "url":{"raw":"{{GATEWAY_URL}}/v1/users/me","host":["{{GATEWAY_URL}}"],"path":["v1","users","me"]}
+      },
+      "event":[{"listen":"test","script":{"exec":["pm.test('Profile fetched via gateway', function () { pm.response.to.have.status(200); });"]}}]
+    },
+    {
+      "name": "Get Users List",
+      "request": {
+        "method":"GET",
+        "header":[{"key":"Authorization","value":"Bearer {{TOKEN}}"}],
+        "url":{"raw":"{{USERS_URL}}/v1/users","host":["{{USERS_URL}}"],"path":["v1","users"]}
+      },
+      "event":[{"listen":"test","script":{"exec":["pm.test('Users list fetched', function () { pm.response.to.have.status(200); });"]}}]
+    },
+    {
+      "name": "Get Users List (Via Gateway)",
+      "request": {
+        "method":"GET",
+        "header":[{"key":"Authorization","value":"Bearer {{TOKEN}}"}],
+        "url":{"raw":"{{GATEWAY_URL}}/v1/users","host":["{{GATEWAY_URL}}"],"path":["v1","users"]}
+      },
+      "event":[{"listen":"test","script":{"exec":["pm.test('Users list fetched via gateway', function () { pm.response.to.have.status(200); });"]}}]
+    },
+    {
+      "name": "Create Order",
+      "request": {
+        "method":"POST",
+        "header":[
+          {"key":"Authorization","value":"Bearer {{TOKEN}}"},
+          {"key":"Content-Type","value":"application/json"}
+        ],
+        "body":{"mode":"raw","raw":"{\"user_id\": \"{{USER_ID}}\", \"items\": [{\"name\": \"Item1\", \"price\": 100}], \"total\": 100}"},
+        "url":{"raw":"{{ORDERS_URL}}/v1/orders","host":["{{ORDERS_URL}}"],"path":["v1","orders"]}
+      },
+      "event":[{"listen":"test","script":{"exec":[
+        "pm.test('Order created', function () {",
+        "    var jsonData = pm.response.json();",
+        "    pm.expect(jsonData.success).to.eql(true);",
+        "    pm.environment.set('ORDER_ID', jsonData.data.id);",
+        "});"
+      ]}}]
+    },
+    {
+      "name": "Create Order (Via Gateway)",
+      "request": {
+        "method":"POST",
+        "header":[
+          {"key":"Authorization","value":"Bearer {{TOKEN}}"},
+          {"key":"Content-Type","value":"application/json"}
+        ],
+        "body":{"mode":"raw","raw":"{\"user_id\": \"{{USER_ID}}\", \"items\": [{\"name\": \"Item1\", \"price\": 100}], \"total\": 100}"},
+        "url":{"raw":"{{GATEWAY_URL}}/v1/orders","host":["{{GATEWAY_URL}}"],"path":["v1","orders"]}
+      },
+      "event":[{"listen":"test","script":{"exec":[
+        "pm.test('Order created via gateway', function () {",
+        "    var jsonData = pm.response.json();",
+        "    pm.expect(jsonData.success).to.eql(true);",
+        "    pm.environment.set('ORDER_ID', jsonData.data.id);",
+        "});"
+      ]}}]
+    },
+    {
+      "name": "Get Own Order",
+      "request": {
+        "method":"GET",
+        "header":[{"key":"Authorization","value":"Bearer {{TOKEN}}"}],
+        "url":{"raw":"{{ORDERS_URL}}/v1/orders/{{ORDER_ID}}","host":["{{ORDERS_URL}}"],"path":["v1","orders","{{ORDER_ID}}"]}
+      },
+      "event":[{"listen":"test","script":{"exec":["pm.test('Get own order', function () { pm.response.to.have.status(200); });"]}}]
+    },
+    {
+      "name": "Get Own Order (Via Gateway)",
+      "request": {
+        "method":"GET",
+        "header":[{"key":"Authorization","value":"Bearer {{TOKEN}}"}],
+        "url":{"raw":"{{GATEWAY_URL}}/v1/orders/{{ORDER_ID}}","host":["{{GATEWAY_URL}}"],"path":["v1","orders","{{ORDER_ID}}"]}
+      },
+      "event":[{"listen":"test","script":{"exec":["pm.test('Get own order via gateway', function () { pm.response.to.have.status(200); });"]}}]
+    },
+    {
+      "name": "Get Orders List",
+      "request": {
+        "method":"GET",
+        "header":[{"key":"Authorization","value":"Bearer {{TOKEN}}"}],
+        "url":{"raw":"{{ORDERS_URL}}/v1/orders","host":["{{ORDERS_URL}}"],"path":["v1","orders"]}
+      },
+      "event":[{"listen":"test","script":{"exec":["pm.test('Orders list fetched', function () { pm.response.to.have.status(200); });"]}}]
+    },
+    {
+      "name": "Get Orders List (Via Gateway)",
+      "request": {
+        "method":"GET",
+        "header":[{"key":"Authorization","value":"Bearer {{TOKEN}}"}],
+        "url":{"raw":"{{GATEWAY_URL}}/v1/orders","host":["{{GATEWAY_URL}}"],"path":["v1","orders"]}
+      },
+      "event":[{"listen":"test","script":{"exec":["pm.test('Orders list fetched via gateway', function () { pm.response.to.have.status(200); });"]}}]
+    },
+    {
+      "name": "Update Other User Order - Should Fail",
+      "request": {
+        "method":"PUT",
+        "header":[{"key":"Authorization","value":"Bearer {{TOKEN}}"},{"key":"Content-Type","value":"application/json"}],
+        "body":{"mode":"raw","raw":"{\"status\": \"cancelled\"}"},
+        "url":{"raw":"{{ORDERS_URL}}/v1/orders/other-order-id","host":["{{ORDERS_URL}}"],"path":["v1","orders","other-order-id"]}
+      },
+      "event":[{"listen":"test","script":{"exec":["pm.test('Cannot update other user order', function () { pm.response.to.have.status(404); });"]}}]
+    },
+    {
+      "name": "Update Other User Order - Should Fail (Via Gateway)",
+      "request": {
+        "method":"PUT",
+        "header":[{"key":"Authorization","value":"Bearer {{TOKEN}}"},{"key":"Content-Type","value":"application/json"}],
+        "body":{"mode":"raw","raw":"{\"status\": \"cancelled\"}"},
+        "url":{"raw":"{{GATEWAY_URL}}/v1/orders/other-order-id","host":["{{GATEWAY_URL}}"],"path":["v1","orders","other-order-id"]}
+      },
+      "event":[{"listen":"test","script":{"exec":["pm.test('Cannot update other user order via gateway', function () { pm.response.to.have.status(404); });"]}}]
+    },
+    {
+      "name": "Cancel Own Order",
+      "request": {
+        "method":"PUT",
+        "header":[{"key":"Authorization","value":"Bearer {{TOKEN}}"},{"key":"Content-Type","value":"application/json"}],
+        "body":{"mode":"raw","raw":"{\"status\": \"cancelled\"}"},
+        "url":{"raw":"{{ORDERS_URL}}/v1/orders/{{ORDER_ID}}","host":["{{ORDERS_URL}}"],"path":["v1","orders","{{ORDER_ID}}"]}
+      },
+      "event":[{"listen":"test","script":{"exec":["pm.test('Own order cancelled', function () { pm.response.to.have.status(200); });"]}}]
+    },
+    {
+      "name": "Cancel Own Order (Via Gateway)",
+      "request": {
+        "method":"PUT",
+        "header":[{"key":"Authorization","value":"Bearer {{TOKEN}}"},{"key":"Content-Type","value":"application/json"}],
+        "body":{"mode":"raw","raw":"{\"status\": \"cancelled\"}"},
+        "url":{"raw":"{{GATEWAY_URL}}/v1/orders/{{ORDER_ID}}","host":["{{GATEWAY_URL}}"],"path":["v1","orders","{{ORDER_ID}}"]}
+      },
+      "event":[{"listen":"test","script":{"exec":["pm.test('Own order cancelled via gateway', function () { pm.response.to.have.status(200); });"]}}]
+    }
+  ]
+}
